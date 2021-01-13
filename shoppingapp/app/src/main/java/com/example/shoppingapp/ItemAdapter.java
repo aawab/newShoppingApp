@@ -29,7 +29,7 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ViewHolder> {
 
     public class ViewHolder extends RecyclerView.ViewHolder{
 
-        TextView tvItemName,tvItemDesc;
+        TextView tvItemName,tvItemDesc, tvItemPrice;
         ImageView ivItemImage;
 
         public ViewHolder(@NonNull View itemView) {
@@ -37,8 +37,9 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ViewHolder> {
 
             tvItemName = itemView.findViewById(R.id.tvItemName);
             tvItemDesc = itemView.findViewById(R.id.tvItemDesc);
+            tvItemPrice = itemView.findViewById(R.id.tvItemPrice);
 
-            ivItemImage= itemView.findViewById(R.id.ivItemImage);
+            ivItemImage = itemView.findViewById(R.id.ivItemImage);
 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -62,10 +63,11 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull ItemAdapter.ViewHolder holder, int position) {
         holder.itemView.setTag(position);
-        //TODO set text on the items, etc for each item in database
-        // must wait for Tony in order to make sure our item class and his item table
-        // have matching column names, etc
-        // example: holder.tvItemName.setText(items.get(position).getName());
+        holder.tvItemName.setText(items.get(position).getName());
+        holder.tvItemDesc.setText(items.get(position).getDescription()); //optional, maybe remove later
+        holder.tvItemPrice.setText(items.get(position).getPrice());
+
+        //TODO if we use images, set the image resource here
     }
 
 

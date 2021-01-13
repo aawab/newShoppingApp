@@ -10,14 +10,6 @@
 
 
     <fragment
-        android:id="@+id/fragNavigationLayout"
-        android:name="com.example.shoppingapp.NavigationFragment"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        tools:layout="@layout/fragment_navigation" />
-
-
-    <fragment
         android:id="@+id/fragLoginLayout"
         android:name="com.example.shoppingapp.LoginFragment"
         android:layout_width="match_parent"

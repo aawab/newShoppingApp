@@ -5,7 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -26,6 +27,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Set;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -49,10 +52,10 @@ public class MainActivity extends AppCompatActivity {
     //TODO probably need to setup a basic cartItem class and adapter for the cartFragment exactly
     //how I did the shopFragment(or any way you think is better @Andrew)
 
-    //TODO setup list or other data container to communicate w backend DB e.g ArrayList, etc.
+    ArrayList<Item> items;
 
     FragmentManager fragmentManager;
-    Fragment fragNavigationLayout, fragLoginLayout, fragRegisterLayout, fragUploadLayout, fragShopLayout,
+    Fragment fragLoginLayout, fragRegisterLayout, fragUploadLayout, fragShopLayout,
             fragCartLayout;
 
     Boolean isLoggedIn; //bool for use for buttonClicks
@@ -62,7 +65,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ivCart = findViewById(R.id.ivCart);
         etUsername = findViewById(R.id.etUsername);
         etPassword = findViewById(R.id. etPassword);
         btnLogin = findViewById(R.id.btnLogin);
@@ -82,15 +84,14 @@ public class MainActivity extends AppCompatActivity {
         rvList = findViewById(R.id.rvList);
         rvCart = findViewById(R.id.rvCart);
 
-        //TODO setup adapter constructor in ItemAdapter and create it accordingly
+        //TODO setup ArrayList<Item> items here by downloading stuff from DB
+
+        //TODO setup adapter constructor in ItemAdapter and create it accordingly(w arraylist again)
         // once we gain access to the backend API from Tony
         // example: myAdapter = new ItemAdapter(getApplicationContext(),insert list name here);
 
         fragmentManager = getSupportFragmentManager();
 
-        //TODO temporarily swapped out navigationFrag for an actionBar for ease of use cuz i cant
-        //figure out how to get rid of the default app banner tht shows on top of the navigationFrag
-        fragNavigationLayout = fragmentManager.findFragmentById(R.id.fragNavigationLayout);
         fragLoginLayout = fragmentManager.findFragmentById(R.id.fragLoginLayout);
         fragRegisterLayout = fragmentManager.findFragmentById(R.id.fragRegisterLayout);
         fragUploadLayout = fragmentManager.findFragmentById(R.id.fragUploadLayout);
@@ -98,8 +99,7 @@ public class MainActivity extends AppCompatActivity {
         fragCartLayout = fragmentManager.findFragmentById(R.id.fragCartLayout);
 
         //temporary, if we end up sticking to actionBar then we'll remove navFrag entirely
-        fragmentManager.beginTransaction().hide(fragNavigationLayout)
-                                            .show(fragLoginLayout)
+        fragmentManager.beginTransaction() .show(fragLoginLayout)
                                             .hide(fragRegisterLayout)
                                             .hide(fragUploadLayout)
                                             .hide(fragShopLayout)
@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
             {
                 fragmentManager.beginTransaction()
                         .hide(fragLoginLayout)
-                        .show(fragRegisterLayout)
+                        .show(fragRegisterLayout).addToBackStack(null)
                         .commit();
             }
         });
@@ -164,6 +164,10 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v)
             {
                 // save to database possibly, but definitely update the current shop then return to shop
+                if ( (etUploadName.getText().toString().isEmpty() == false) && (etUploadPrice.getText().toString().isEmpty() == false) )
+                {
+                    new UploadInBackground().execute(etUploadName.getText().toString(), etUploadPrice.getText().toString(), etUploadDescription.getText().toString());
+                }
             }
         });
     }
@@ -307,14 +311,14 @@ public class MainActivity extends AppCompatActivity {
             if (loginStatus)
             {
                 // switch to shop fragment
-                fragmentManager.beginTransaction()
-                        .hide(fragLoginLayout)
-                        .show(fragShopLayout)
-                        .commit();
+                
+                new DownloadInBackground().execute();
+                
             }
             else // login failure
             {
-
+                Toast.makeText(getApplicationContext(),"Login failed",
+                        Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -335,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
 
             try
             {
-                String urlParameters  = "username=" + userData[0] +  "&password=" + userData[1] + "&email=" + userData[2] + "&confirm_password=asdasd";
+                String urlParameters  = "username=" + userData[0] +  "&password=" + userData[1] + "&email=" + userData[2];
                 byte[] postData = urlParameters.getBytes( StandardCharsets.UTF_8 );
 
                 URL url = new URL(urlString);
@@ -390,21 +394,183 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(Boolean loginStatus) {
-            super.onPostExecute(loginStatus);
+        protected void onPostExecute(Boolean registerStatus) {
+            super.onPostExecute(registerStatus);
 
             // login success
-            if (loginStatus)
+            if (registerStatus)
             {
                 // switch to shop fragment
                 fragmentManager.beginTransaction()
                         .hide(fragRegisterLayout)
                         .show(fragLoginLayout)
+                        .addToBackStack(null)
                         .commit();
             }
             else // login failure
             {
+                Toast.makeText(getApplicationContext(),"Registration failed",
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 
+    public class UploadInBackground extends AsyncTask<String, Integer, Boolean>
+    {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Boolean doInBackground(String... itemData) {
+            Log.i("shopData", "item name: " + itemData[0] + " price: " + itemData[1] + "description: " + itemData[2]);
+
+            String urlString = "https://install-gentoo.herokuapp.com/users/upload";
+
+            try
+            {
+                String urlParameters  = "itemName=" + itemData[0] +  "&price=" + itemData[1] + "&description=" + itemData[2];
+                byte[] postData = urlParameters.getBytes( StandardCharsets.UTF_8 );
+
+                URL url = new URL(urlString);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("POST");
+                urlConnection.setDoOutput(true);
+                urlConnection.setDoInput(true);
+
+
+                DataOutputStream writer = new DataOutputStream(urlConnection.getOutputStream());
+                writer.write(postData);
+                urlConnection.connect();
+
+                writer.flush();
+                writer.close();
+//                out.close();
+
+                String response = "";
+                int responseCode = urlConnection.getResponseCode();
+
+                if (responseCode == HttpsURLConnection.HTTP_OK)
+                {
+                    String line;
+                    BufferedReader responseReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+
+                    while ((line = responseReader.readLine()) != null)
+                    {
+                        response += line;
+                    }
+
+                    Log.i("shopLog", response);
+                    return true;
+                }
+                else
+                {
+                    response = "ERR";
+
+                    Log.i("shopLog", response);
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.i("shopLog", "Error:" + e);
+                return false;
+            }
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            super.onProgressUpdate(values);
+        }
+
+        @Override
+        protected void onPostExecute(Boolean uploadStatus) {
+            super.onPostExecute(uploadStatus);
+
+            // login success
+            if (uploadStatus)
+            {
+                // switch to shop fragment
+                items.add( new Item( etUploadName.getText().toString(), etUploadPrice.getText().toString(), etUploadDescription.getText().toString() ) );
+                myAdapter.notifyDataSetChanged();
+                
+                fragmentManager.beginTransaction()
+                        .hide(fragUploadLayout)
+                        .show(fragShopLayout)
+                        .addToBackStack(null)
+                        .commit();
+            }
+            else // login failure
+            {
+                Toast.makeText(getApplicationContext(),"Upload failed",
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    public class DownloadInBackground extends AsyncTask<String, Integer, Boolean>
+    {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Boolean doInBackground(String...userNames) {
+
+            String urlString = "https://install-gentoo.herokuapp.com/users/shop";
+
+            try
+            {
+                URL url = new URL(urlString);
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                
+                BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                
+                JsonObject jsonObj = new JsonParser().parse(reader).getAsJsonObject();
+                Set<String> keys = jsonObj.keySet();
+
+                for(String s:keys){
+                    //jsonObj.get(s).
+                }
+
+
+            }
+            catch (Exception e)
+            {
+                Log.i("shopLog", "Exception:" + e);
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... values) {
+            super.onProgressUpdate(values);
+        }
+
+        @Override
+        protected void onPostExecute(Boolean shopStatus) {
+            super.onPostExecute(shopStatus);
+            
+            if (shopStatus)
+            {
+                myAdapter.notifyDataSetChanged();
+
+                isLoggedIn=true;
+                fragmentManager.beginTransaction()
+                        .hide(fragLoginLayout)
+                        .show(fragShopLayout)
+                        .addToBackStack(null)
+                        .commit();
+            }
+            else
+            {
+                isLoggedIn=false;
+                Toast.makeText(getApplicationContext(),"Shop download failed",
+                        Toast.LENGTH_SHORT).show();
             }
         }
     }
