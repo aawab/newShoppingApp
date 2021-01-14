@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
             fragCartLayout;
 
     Boolean isLoggedIn; //bool for use for buttonClicks
+    Boolean isAdmin; //bool for creating items if admin
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -258,7 +259,6 @@ public class MainActivity extends AppCompatActivity {
                 urlConnection.setDoOutput(true);
                 urlConnection.setDoInput(true);
 
-
                 DataOutputStream writer = new DataOutputStream(urlConnection.getOutputStream());
                 writer.write(postData);
                 urlConnection.connect();
@@ -273,13 +273,16 @@ public class MainActivity extends AppCompatActivity {
                 if (responseCode == HttpsURLConnection.HTTP_OK)
                 {
                     String line;
+                    
+
                     BufferedReader responseReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
 
                     while ((line = responseReader.readLine()) != null)
                     {
                         response += line;
                     }
-
+                    isAdmin = response.indexOf("admin")>0;
+                    // JsonParser.parseString(response).
                     Log.i("shopLog", response);
                     return true;
                 }
@@ -347,7 +350,6 @@ public class MainActivity extends AppCompatActivity {
                 urlConnection.setRequestMethod("POST");
                 urlConnection.setDoOutput(true);
                 urlConnection.setDoInput(true);
-
 
                 DataOutputStream writer = new DataOutputStream(urlConnection.getOutputStream());
                 writer.write(postData);
@@ -520,20 +522,30 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected Boolean doInBackground(String...userNames) {
 
-            String urlString = "https://install-gentoo.herokuapp.com/users/shop";
+            String urlString = "https://install-gentoo.herokuapp.com/items";
 
             try
             {
                 URL url = new URL(urlString);
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
                 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
                 
                 JsonObject jsonObj = new JsonParser().parse(reader).getAsJsonObject();
                 Set<String> keys = jsonObj.keySet();
 
+                ////itemname: $ITEMNAME:STRING,
+                //                    //price: $PRICE:STRING(represent a NUMBER),
+                //                    //description: $DESCRIPTION:STRING,
+                //                    //category: $CATEGORY:STRING,
+                //                    //pictures: $FILE:STRING
+
+
                 for(String s:keys){
                     //jsonObj.get(s).
+
+                    Log.i("shopLog",s);
                 }
 
 
